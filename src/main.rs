@@ -1,3 +1,6 @@
+use std::io::Write;
+use std::time::{Duration, Instant};
+
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::pixels::Color;
@@ -55,6 +58,8 @@ impl Application {
         // display Box
         const BOX_WIDTH: u32 = 50;
         const BOX_HEIGHT: u32 = 50;
+        const NORMAL_BOX_SPEED: i32 = 10;
+        const SLOW_BOX_SPEED: i32 = 5;
 
         let (window_width, window_height) = self.canvas.output_size().unwrap();
 
@@ -71,7 +76,12 @@ impl Application {
             .unwrap();
         self.canvas.present();
 
+        let target_frame_duration = Duration::from_secs_f64(1.0 / 60.0);
+        let mut fps_timer = std::time::Instant::now();
+        let mut frame_count = 0;
+
         'running: loop {
+            let frame_start = std::time::Instant::now();
             for event in event_pump.poll_iter() {
                 match event {
                     Event::Window { win_event, .. } => match win_event {
@@ -92,16 +102,53 @@ impl Application {
             // The rest of the game loop goes here...
             let keyboad_state = event_pump.keyboard_state();
             if keyboad_state.is_scancode_pressed(Scancode::Up) {
-                state.position.1 -= 1;
+                if keyboad_state.is_scancode_pressed(Scancode::LShift)
+                    || keyboad_state.is_scancode_pressed(Scancode::RShift)
+                {
+                    state.position.1 -= SLOW_BOX_SPEED;
+                } else {
+                    state.position.1 -= NORMAL_BOX_SPEED;
+                }
             }
             if keyboad_state.is_scancode_pressed(Scancode::Down) {
-                state.position.1 += 1;
+                if keyboad_state.is_scancode_pressed(Scancode::LShift)
+                    || keyboad_state.is_scancode_pressed(Scancode::RShift)
+                {
+                    state.position.1 += SLOW_BOX_SPEED;
+                } else {
+                    state.position.1 += NORMAL_BOX_SPEED;
+                }
             }
             if keyboad_state.is_scancode_pressed(Scancode::Left) {
-                state.position.0 -= 1;
+                if keyboad_state.is_scancode_pressed(Scancode::LShift)
+                    || keyboad_state.is_scancode_pressed(Scancode::RShift)
+                {
+                    state.position.0 -= SLOW_BOX_SPEED;
+                } else {
+                    state.position.0 -= NORMAL_BOX_SPEED;
+                }
             }
             if keyboad_state.is_scancode_pressed(Scancode::Right) {
-                state.position.0 += 1;
+                if keyboad_state.is_scancode_pressed(Scancode::LShift)
+                    || keyboad_state.is_scancode_pressed(Scancode::RShift)
+                {
+                    state.position.0 += SLOW_BOX_SPEED;
+                } else {
+                    state.position.0 += NORMAL_BOX_SPEED;
+                }
+            }
+
+            if state.x() < 0 {
+                state.position.0 = 0;
+            }
+            if state.y() < 0 {
+                state.position.1 = 0;
+            }
+            if state.x() > (window_width as i32) - (BOX_WIDTH as i32) {
+                state.position.0 = (window_width as i32) - (BOX_WIDTH as i32);
+            }
+            if state.y() > (window_height as i32) - (BOX_HEIGHT as i32) {
+                state.position.1 = (window_height as i32) - (BOX_HEIGHT as i32);
             }
 
             self.canvas.set_draw_color(Color::RGB(255, 255, 255));
@@ -112,6 +159,26 @@ impl Application {
                 .fill_rect(Rect::new(state.x(), state.y(), BOX_WIDTH, BOX_HEIGHT))
                 .unwrap();
             self.canvas.present();
+
+            frame_count += 1;
+            if fps_timer.elapsed() >= Duration::from_secs(1) {
+                let current_fps = frame_count as f64 / fps_timer.elapsed().as_secs_f64();
+                frame_count = 0;
+                fps_timer = Instant::now();
+
+                print!(
+                    "\rFPS: {:.2} Position: ({}, {})",
+                    current_fps,
+                    state.x(),
+                    state.y()
+                );
+                std::io::stdout().flush().unwrap();
+            }
+
+            let frame_duration = frame_start.elapsed();
+            if frame_duration < target_frame_duration {
+                std::thread::sleep(target_frame_duration - frame_duration);
+            }
         }
     }
 }
