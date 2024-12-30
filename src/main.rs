@@ -21,13 +21,13 @@ impl State {
     }
 }
 
-struct Application {
+struct Engine {
     sdl_context: sdl2::Sdl,
     canvas: sdl2::render::Canvas<sdl2::video::Window>,
 }
 
-impl Application {
-    fn new() -> anyhow::Result<Application> {
+impl Engine {
+    fn new() -> anyhow::Result<Engine> {
         let sdl_context = sdl2::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
 
@@ -44,7 +44,7 @@ impl Application {
         canvas.clear();
         canvas.present();
 
-        Ok(Application {
+        Ok(Engine {
             sdl_context,
             canvas,
         })
@@ -184,7 +184,7 @@ impl Application {
 }
 
 pub fn main() -> anyhow::Result<()> {
-    let mut app = Application::new()?;
+    let mut app = Engine::new()?;
     app.run();
     Ok(())
 }
