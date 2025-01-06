@@ -5,7 +5,6 @@ use sdl2::event::{Event, WindowEvent};
 use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::pixels::Color;
-use sdl2::rect::Rect;
 
 #[derive(Default)]
 struct State {
