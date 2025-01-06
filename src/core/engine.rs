@@ -2,6 +2,7 @@ use std::io::Write;
 use std::time::{Duration, Instant};
 
 use sdl2::event::{Event, WindowEvent};
+use sdl2::gfx::primitives::DrawRenderer;
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
@@ -21,9 +22,22 @@ impl State {
     }
 }
 
+#[derive(Debug)]
+struct Meta {
+    width: i16,
+    height: i16,
+}
+
+impl Meta {
+    pub fn new(width: i16, height: i16) -> Meta {
+        Meta { width, height }
+    }
+}
+
 pub struct Engine {
     sdl_context: sdl2::Sdl,
     canvas: sdl2::render::Canvas<sdl2::video::Window>,
+    meta: Meta,
 }
 
 impl Engine {
@@ -38,11 +52,16 @@ impl Engine {
             .position_centered()
             .build()?;
 
+        let (width, height) = window.size();
+        let meta = Meta::new(width.try_into().unwrap(), height.try_into().unwrap());
         let canvas = window.into_canvas().build()?;
+
+        println!("Meta: {:?}", meta);
 
         Ok(Engine {
             sdl_context,
             canvas,
+            meta,
         })
     }
 
@@ -52,23 +71,26 @@ impl Engine {
 
         // init Game window
         // display Box
-        const BOX_WIDTH: u32 = 50;
-        const BOX_HEIGHT: u32 = 50;
+        const CHARACTER_RADIUS: i16 = 25;
         const NORMAL_BOX_SPEED: i32 = 10;
         const SLOW_BOX_SPEED: i32 = 5;
 
         let (window_width, window_height) = self.canvas.output_size().unwrap();
 
-        let position_x = ((window_width as i32) / 2) - (BOX_WIDTH as i32 / 2);
-        let position_y = ((window_height as i32) / 2) - (BOX_HEIGHT as i32 / 2);
+        let position_x = (window_width / 2) as i32;
+        let position_y = (window_height / 2) as i32;
         state.position = (position_x, position_y);
 
         self.canvas.set_draw_color(Color::RGB(255, 255, 255));
         self.canvas.clear();
 
-        self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas
-            .fill_rect(Rect::new(state.x(), state.y(), BOX_WIDTH, BOX_HEIGHT))
+            .filled_circle(
+                position_x.try_into().unwrap(),
+                position_y.try_into().unwrap(),
+                CHARACTER_RADIUS,
+                Color::BLACK,
+            )
             .unwrap();
         self.canvas.present();
 
@@ -146,19 +168,23 @@ impl Engine {
             if state.y() < 0 {
                 state.position.1 = 0;
             }
-            if state.x() > (window_width as i32) - (BOX_WIDTH as i32) {
-                state.position.0 = (window_width as i32) - (BOX_WIDTH as i32);
+            if state.x() > (self.meta.width - CHARACTER_RADIUS) as i32 {
+                state.position.0 = self.meta.width.into();
             }
-            if state.y() > (window_height as i32) - (BOX_HEIGHT as i32) {
-                state.position.1 = (window_height as i32) - (BOX_HEIGHT as i32);
+            if state.y() > (self.meta.height - CHARACTER_RADIUS) as i32 {
+                state.position.1 = self.meta.height.into();
             }
 
             self.canvas.set_draw_color(Color::RGB(255, 255, 255));
             self.canvas.clear();
 
-            self.canvas.set_draw_color(box_color);
             self.canvas
-                .fill_rect(Rect::new(state.x(), state.y(), BOX_WIDTH, BOX_HEIGHT))
+                .filled_circle(
+                    state.x().try_into().unwrap(),
+                    state.y().try_into().unwrap(),
+                    CHARACTER_RADIUS,
+                    box_color,
+                )
                 .unwrap();
             self.canvas.present();
 
